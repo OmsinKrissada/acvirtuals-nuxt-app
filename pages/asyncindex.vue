@@ -1,12 +1,16 @@
 <script setup lang="ts">
 const playerName = ref("");
 
-const { data: topMoney, error: topMoneyError, pending: topMoneyPending } = await useFetch<{ name: string; balance: string; exempt: boolean }[]>(`https://acvirtuals.com/api/stats/top/money`);
+const {
+	data: topMoney,
+	error: topMoneyError,
+	pending: topMoneyPending,
+} = useLazyFetch<{ name: string; balance: string; exempt: boolean }[]>(`https://acvirtuals.com/api/stats/top/money`, { server: false });
 const {
 	data: topPlaytime,
 	error: topPlaytimeError,
 	pending: topPlaytimePending,
-} = await useFetch<{ name: string; joins: number; session: number; time: number }[]>(`https://acvirtuals.com/api/stats/top/playtime`);
+} = useLazyFetch<{ name: string; joins: number; session: number; time: number }[]>(`https://acvirtuals.com/api/stats/top/playtime`, { server: false });
 
 const top_money_with_uuid = ref<{ name: string; balance: number; uuid: string }[]>([]);
 // console.log(topMoneyPending.value);
@@ -15,27 +19,36 @@ const top_money_with_uuid = ref<{ name: string; balance: number; uuid: string }[
 // }, 500);
 
 const top_playtime_with_uuid = ref<{ name: string; joins: number; session: number; time: number; uuid: string }[]>([]);
-const top_five_playtime = topPlaytime.value.sort((a, b) => b.time - a.time).slice(0, 5);
-top_playtime_with_uuid.value = await Promise.all(
-	top_five_playtime.map(async p => {
-		const { data } = await useFetch<{ premium_uuid: string }>(`https://acvirtuals.com/api/stats/player/${p.name}`);
-		const uuid = data.value.premium_uuid;
-		return { uuid: uuid, ...p };
-	})
-);
+watch(topPlaytime, async newTopPlaytime => {
+	const top_five_playtime = newTopPlaytime.sort((a, b) => b.time - a.time).slice(0, 5);
+	top_playtime_with_uuid.value = await Promise.all(
+		top_five_playtime.map(async p => {
+			const { data } = await useFetch<{ premium_uuid: string }>(`https://acvirtuals.com/api/stats/player/${p.name}`);
+			const uuid = data.value.premium_uuid;
+			return { uuid: uuid, ...p };
+		})
+	);
+});
 
-const top_five_money = topMoney.value.sort((a, b) => +b.balance - +a.balance).slice(0, 5);
-top_money_with_uuid.value = await Promise.all(
-	top_five_money.map(async p => {
-		const { data } = await useFetch<{ premium_uuid: string }>(`https://acvirtuals.com/api/stats/player/${p.name}`);
-		const uuid = data.value.premium_uuid;
-		return {
-			name: p.name,
-			balance: +p.balance,
-			uuid: uuid,
-		};
-	})
-);
+// onMounted(() => {
+// 	console.log("hello!");
+// });
+watch(topMoney, async newTopMoney => {
+	console.log("yay");
+	console.log(newTopMoney);
+	const top_five_money = newTopMoney.sort((a, b) => +b.balance - +a.balance).slice(0, 5);
+	top_money_with_uuid.value = await Promise.all(
+		top_five_money.map(async p => {
+			const { data } = await useFetch<{ premium_uuid: string }>(`https://acvirtuals.com/api/stats/player/${p.name}`);
+			const uuid = data.value.premium_uuid;
+			return {
+				name: p.name,
+				balance: +p.balance,
+				uuid: uuid,
+			};
+		})
+	);
+});
 
 function submit() {
 	navigateTo(`/player/${playerName.value}`);
@@ -56,7 +69,6 @@ function submit() {
 					name="name"
 					type="text"
 					placeholder="Enter username"
-					required
 					autocomplete="off"
 					autofocus
 				/>
@@ -71,7 +83,7 @@ function submit() {
 			<!-- <nuxt-link :href="`player/${playerName}`">Link</nuxt-link> -->
 		</div>
 
-		<div class="flex flex-col w-screen sm:w-auto sm:flex-row sm:space-x-10 space-y-10 sm:space-y-0">
+		<div class="flex flex-col w-screen sm:w-auto sm:flex-row sm:space-x-10">
 			<div class="p-6 sm:rounded-lg bg-white/10 sm:ring-1 ring-gray-100 backdrop-blur-sm text-white">
 				<h2 class="mb-5 text-3xl">Top Money</h2>
 				<ul v-if="!topMoneyPending" class="flex flex-col space-y-3">
@@ -83,28 +95,28 @@ function submit() {
 						:money="top_money_with_uuid[0].balance"
 					/>
 					<TopMoney
-						class="bg-slate-800 shadow-lg shadow-slate-800/20"
+						class="bg-[#919191] shadow-lg shadow-[#919191]/20"
 						:rank="2"
 						:name="top_money_with_uuid[1].name"
 						:uuid="top_money_with_uuid[1].uuid"
 						:money="top_money_with_uuid[1].balance"
 					/>
 					<TopMoney
-						class="bg-[#6e4218] shadow-lg shadow-[#b87333]/20"
+						class="bg-[#b87333] shadow-lg shadow-[#b87333]/20"
 						:rank="3"
 						:name="top_money_with_uuid[2].name"
 						:uuid="top_money_with_uuid[2].uuid"
 						:money="top_money_with_uuid[2].balance"
 					/>
 					<TopMoney
-						class="bg-[#919191] shadow-lg shadow-[#919191]/20"
+						class="bg-slate-800 shadow-lg shadow-slate-800/20"
 						:rank="4"
 						:name="top_money_with_uuid[3].name"
 						:uuid="top_money_with_uuid[3].uuid"
 						:money="top_money_with_uuid[3].balance"
 					/>
 					<TopMoney
-						class="bg-[#919191] shadow-lg shadow-[#919191]/20"
+						class="bg-slate-800 shadow-lg shadow-slate-800/20"
 						:rank="5"
 						:name="top_money_with_uuid[4].name"
 						:uuid="top_money_with_uuid[4].uuid"
@@ -124,28 +136,28 @@ function submit() {
 						:time="top_playtime_with_uuid[0].time"
 					/>
 					<TopPlaytime
-						class="bg-slate-800 shadow-lg shadow-slate-800/20"
+						class="bg-[#919191] shadow-lg shadow-[#919191]/20"
 						:rank="2"
 						:name="top_playtime_with_uuid[1].name"
 						:uuid="top_playtime_with_uuid[1].uuid"
 						:time="top_playtime_with_uuid[1].time"
 					/>
 					<TopPlaytime
-						class="bg-[#6e4218] shadow-lg shadow-[#b87333]/20"
+						class="bg-[#b87333] shadow-lg shadow-[#b87333]/20"
 						:rank="3"
 						:name="top_playtime_with_uuid[2].name"
 						:uuid="top_playtime_with_uuid[2].uuid"
 						:time="top_playtime_with_uuid[2].time"
 					/>
 					<TopPlaytime
-						class="bg-[#919191] shadow-lg shadow-[#919191]/20"
+						class="bg-slate-800 shadow-lg shadow-slate-800/20"
 						:rank="4"
 						:name="top_playtime_with_uuid[3].name"
 						:uuid="top_playtime_with_uuid[3].uuid"
 						:time="top_playtime_with_uuid[3].time"
 					/>
 					<TopPlaytime
-						class="bg-[#919191] shadow-lg shadow-[#919191]/20"
+						class="bg-slate-800 shadow-lg shadow-slate-800/20"
 						:rank="5"
 						:name="top_playtime_with_uuid[4].name"
 						:uuid="top_playtime_with_uuid[4].uuid"

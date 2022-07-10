@@ -4,9 +4,11 @@ const { data: content, error: err, pending: isPending } = await useFetch(`https:
 </script>
 
 <template>
-	<p>
-		{{ content }}
-	</p>
-	<p>Error: {{ err }}</p>
-	<p v-if="isPending">Loading...</p>
+	<div>
+		<p>
+			{{ content }}
+		</p>
+		<p>Error: {{ err }}</p>
+		<p v-if="isPending">Loading...</p>
+	</div>
 </template>
